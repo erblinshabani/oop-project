@@ -1,115 +1,108 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
-public abstract class Detyre
+public abstract class Task
 {
-    public string Titulli { get; set; }
-    public bool EshteKryer { get; set; }
+    public string Title { get; set; }
+    public bool IsCompleted { get; set; }
 
-    public Detyre(string titulli)
+    protected Task(string title)
     {
-        Titulli = titulli;
-        EshteKryer = false;
+        Title = title;
+        IsCompleted = false;
     }
 
-    public abstract void MarkoSiKryer();
-}
+    public abstract void MarkAsCompleted();
 
-public class DetyreNormale : Detyre
-{
-    public DetyreNormale(string titulli) : base(titulli)
+    public virtual string GetDescription()
     {
+        return Title;
     }
 
-    public override void MarkoSiKryer()
+    public override string ToString()
     {
-        EshteKryer = true;
+        return $"{(IsCompleted ? "[X]" : "[ ]")} {GetDescription()}";
     }
 }
 
-public class DetyreAvancuar : Detyre
+public class BasicTask : Task
 {
-    public int Prioriteti { get; set; }
-    public DateTime DataSkadimit { get; set; }
-    public TimeSpan KohaSkadimit { get; set; }
-
-    public DetyreAvancuar(string titulli, int prioriteti, DateTime dataSkadimit, TimeSpan kohaSkadimit) : base(titulli)
+    public BasicTask(string title) : base(title)
     {
-        Prioriteti = prioriteti;
-        DataSkadimit = dataSkadimit;
-        KohaSkadimit = kohaSkadimit;
     }
 
-    public override void MarkoSiKryer()
+    public override void MarkAsCompleted()
     {
-        EshteKryer = true;
-        Prioriteti = 0;
+        IsCompleted = true;
     }
 }
 
-public class ListaDetyrave
+public class AdvancedTask : Task
 {
-    public List<Detyre> detyrat;
+    public int Priority { get; set; }
 
-    public ListaDetyrave()
+    public AdvancedTask(string title, int priority) : base(title)
     {
-        detyrat = new List<Detyre>();
+        Priority = priority;
     }
 
-    public void ShtoDetyre(Detyre detyre)
+    public override void MarkAsCompleted()
     {
-        if (detyre == null)
+        IsCompleted = true;
+        Priority = 0;
+    }
+
+    public override string GetDescription()
+    {
+        return $"{base.GetDescription()} [Priority: {Priority}]";
+    }
+}
+
+public class TaskList
+{
+    private readonly List<Task> tasks;
+
+    public TaskList()
+    {
+        tasks = new List<Task>();
+    }
+
+    public void AddTask(Task task)
+    {
+        tasks.Add(task);
+    }
+
+    public void DeleteTask(int index)
+    {
+        if (index >= 0 && index < tasks.Count)
         {
-            throw new ArgumentNullException(nameof(detyre), "Detyra nuk mund tE jetE null.");
+            tasks.RemoveAt(index);
         }
-        detyrat.Add(detyre);
-    }
-
-    public void FshijDetyren(int indeksi)
-    {
-        if (indeksi < 1 || indeksi > detyrat.Count)
+        else
         {
-            throw new IndexOutOfRangeException("Indeks i pavlefshEm pEr detyrEn.");
+            Console.WriteLine("Invalid task index.");
         }
-        detyrat.RemoveAt(indeksi - 1);
     }
 
-    public void MarkoDetyrenSiKryer(int indeksi)
+    public void MarkTaskAsCompleted(int index)
     {
-        if (indeksi < 1 || indeksi > detyrat.Count)
+        if (index >= 0 && index < tasks.Count)
         {
-            throw new IndexOutOfRangeException("Indeks i pavlefshEm pEr detyrEn.");
+            tasks[index].MarkAsCompleted();
         }
-        detyrat[indeksi - 1].MarkoSiKryer();
-    }
-
-    public void ShfaqDetyrat()
-    {
-        Console.WriteLine("Lista e Detyrave:");
-        for (int i = 0; i < detyrat.Count; i++)
+        else
         {
-            Console.WriteLine($"{i + 1}. {detyrat[i].Titulli}");
+            Console.WriteLine("Invalid task index.");
         }
     }
 
-    public void RenditSipasPrioritetit()
+    public void DisplayTasks()
     {
-        detyrat = detyrat.OrderByDescending(x => (x is DetyreAvancuar ? (x as DetyreAvancuar).Prioriteti : 0)).ToList();
-    }
-
-    public void RenditSipasSkadences()
-    {
-        detyrat = detyrat.OrderBy(x => (x is DetyreAvancuar ? (x as DetyreAvancuar).DataSkadimit : DateTime.MaxValue)).ToList();
-    }
-
-    public List<Detyre> GjejDetyrat(string keyword)
-    {
-        if (string.IsNullOrWhiteSpace(keyword))
+        Console.WriteLine("Task List:");
+        for (int i = 0; i < tasks.Count; i++)
         {
-            throw new ArgumentException("Fjala kyce nuk mund tE jetE null ose bosh.", nameof(keyword));
+            Console.WriteLine($"{i + 1}. {tasks[i]}");
         }
-        return detyrat.Where(x => x.Titulli.Contains(keyword)).ToList();
     }
 }
 
@@ -117,31 +110,99 @@ class Program
 {
     static void Main(string[] args)
     {
-        ListaDetyrave listaDetyrave = new ListaDetyrave();
+        TaskList taskList = new TaskList();
 
+        bool exit = false;
+        while (!exit)
+        {
+            Console.WriteLine("ToDo List\n");
+            Console.WriteLine("1. Add Task");
+            Console.WriteLine("2. Delete Task");
+            Console.WriteLine("3. Mark Task as Completed");
+            Console.WriteLine("4. Show Tasks");
+            Console.WriteLine("5. Exit\n");
 
-        CheckForDeadlines(listaDetyrave);
+            Console.Write("Select an action: ");
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    Console.Clear();
+                    AddTask(taskList);
+                    break;
+                case "2":
+                    Console.Clear();
+                    DeleteTask(taskList);
+                    break;
+                case "3":
+                    Console.Clear();
+                    MarkTaskAsCompleted(taskList);
+                    break;
+                case "4":
+                    Console.Clear();
+                    taskList.DisplayTasks();
+                    break;
+                case "5":
+                    exit = true;
+                    break;
+                default:
+                    Console.Clear();
+                    Console.WriteLine("Invalid selection.");
+                    break;
+            }
+        }
     }
 
-    static void CheckForDeadlines(ListaDetyrave listaDetyrave)
+    private static void AddTask(TaskList taskList)
     {
-        while (true)
+        Console.Write("Enter the title of the task: ");
+        string title = Console.ReadLine();
+
+        Console.Write("Enter the priority of the task (0 for basic tasks): ");
+        if (int.TryParse(Console.ReadLine(), out int priority))
         {
-            DateTime currentDateTime = DateTime.Now;
-
-            foreach (var detyre in listaDetyrave.detyrat)
+            if (priority == 0)
             {
-                if (detyre is DetyreAvancuar advancedTask)
-                {
-                    if (currentDateTime.Date == advancedTask.DataSkadimit.Date &&
-                        currentDateTime.TimeOfDay >= advancedTask.KohaSkadimit)
-                    {
-                        Console.WriteLine($"Task '{detyre.Titulli}' is overdue! It's time to do it.");
-                    }
-                }
+                taskList.AddTask(new BasicTask(title));
             }
-
-            System.Threading.Thread.Sleep(60000);
+            else
+            {
+                taskList.AddTask(new AdvancedTask(title, priority));
+            }
         }
+        else
+        {
+            Console.WriteLine("Invalid priority input. Task not added.");
+        }
+        Console.Clear ();
+    }
+
+    private static void DeleteTask(TaskList taskList)
+    {
+        Console.Write("Enter the index of the task to delete: ");
+        if (int.TryParse(Console.ReadLine(), out int index))
+        {
+            taskList.DeleteTask(index - 1);
+        }
+        else
+        {
+            Console.WriteLine("Invalid index input.");
+        }
+        Console.Clear ();
+    }
+
+    private static void MarkTaskAsCompleted(TaskList taskList)
+    {
+        Console.Write("Enter the index of the task to mark as completed: ");
+        if (int.TryParse(Console.ReadLine(), out int index))
+        {
+            taskList.MarkTaskAsCompleted(index - 1);
+        }
+        else
+        {
+            Console.WriteLine("Invalid index input.");
+        }
+        Console.Clear ();
     }
 }
